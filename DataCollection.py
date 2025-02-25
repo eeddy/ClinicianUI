@@ -48,7 +48,7 @@ class DataCollectionApp:
 
         # Gesture selection dropdown
         self.gesture_var.set("Rest")  # Default value
-        self.gesture_options = ["Rest", "Open", "Close"]
+        self.gesture_options = ["Rest", "Open", "Close", "Pronation", "Supination"]
 
         self.gesture_dropdown = ttk.Combobox(root, textvariable=self.gesture_var)
         self.gesture_dropdown['values'] = self.gesture_options
@@ -151,6 +151,8 @@ class DataCollectionApp:
             self.odh.reset()
             
             if progress >= 100:
+                if not os.path.exists('Data/'):
+                    os.makedirs('Data/')
                 reps = lambda d, k: sum(1 for f in os.listdir(d) if k in f and os.path.isfile(os.path.join(d, f)))
                 file_count = reps('Data', self.gesture_var.get()) 
                 reps = lambda d, k: sum(1 for f in os.listdir(d) if k in f and os.path.isfile(os.path.join(d, f)))

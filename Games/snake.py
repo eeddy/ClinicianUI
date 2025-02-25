@@ -3,9 +3,27 @@ Snake Eater
 Made with PyGame
 """
 
-import pygame, sys, time, random
+import pygame, sys, time, random, socket
+
+def handle_emg(sock):
+    try:
+        data, _ = sock.recvfrom(1024)
+    except:
+        return 0
+    
+    data = str(data.decode("utf-8"))
+    if data:
+        input_class = float(data.split(' ')[0])
+        if input_class == 1:
+            return 'DOWN'
+        elif input_class == 2:
+            return 'RIGHT'
 
 def start_game():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
+    sock.bind(('127.0.0.1', 12346))
+    sock.setblocking(0)
+
     # Difficulty settings
     # Easy      ->  10
     # Medium    ->  25
@@ -89,6 +107,9 @@ def start_game():
 
     # Main logic
     while True:
+        # Handle EMG 
+        change_to = handle_emg(sock)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()

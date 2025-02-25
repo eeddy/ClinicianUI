@@ -5,8 +5,9 @@ from tkinter import Tk, Toplevel, Frame, Label, messagebox, PhotoImage, Canvas, 
 
 from Games.emg_hero import start_game as start_emg_hero
 from Games.snake import start_game as start_snake
-from Games.tetris import start_game as start_tetris
-from Games.platformer.main import start_game as start_penguins
+from Games.penguin.main import start_game as start_penguins
+from Games.OneDFitts import OneDFitts
+from Games.ISOFitts import FittsLawTest
 
 class GameViewer:
     def __init__(self, root, odh):
@@ -48,11 +49,6 @@ class GameViewer:
                 'thumbnail': 'Icons/Snake.png',
                 'module': start_snake
             },
-            'tetris': {
-                'title': 'Tetris',
-                'thumbnail': 'Icons/Tetris.png',
-                'module': start_tetris
-            },
             'guitar_hero': {
                 'title': 'Guitar Hero',
                 'thumbnail': 'Icons/GuitarHero.png',
@@ -63,6 +59,21 @@ class GameViewer:
                 'thumbnail': 'Icons/RawData.png',
                 'module': self.odh.visualize
             },
+            'one_d_fitts': {
+                'title': '1D Fitts',
+                'thumbnail': 'Icons/1dfitts.png',
+                'module': OneDFitts().start_game
+            },
+            'two_d_fitts': {
+                'title': '2D Fitts',
+                'thumbnail': 'Icons/2dfitts.png',
+                'module': FittsLawTest().run
+            },
+            'pca': {
+                'title': 'PCA',
+                'thumbnail': 'Icons/pca.png',
+                'module': None
+            }
         }
         
         # Store images to prevent garbage collection
@@ -79,26 +90,29 @@ class GameViewer:
         WINDOW_SIZE = 30 
         WINDOW_INCREMENT = 5
 
+        self.names = ["Rest", "Close", "Open", "Pronation", "Supination"]
+
         # Step 1: Parse offline training data 
         #TODO: This is currently hardcoded. 
         dataset_folder = 'Data/'
         regex_filters = [
-            libemg.data_handler.RegexFilter(left_bound = "C_", right_bound="_R", values = ["Rest","Close","Open"], description='classes'),
+            libemg.data_handler.RegexFilter(left_bound = "C_", right_bound="_R", values = self.names, description='classes'),
             libemg.data_handler.RegexFilter(left_bound = "R_", right_bound="_T_", values = ["0", "1"], description='reps'),
         ]
 
         offline_dh = libemg.data_handler.OfflineDataHandler()
         offline_dh.get_data(folder_location=dataset_folder, regex_filters=regex_filters, delimiter=",")
         train_windows, train_metadata = offline_dh.parse_windows(WINDOW_SIZE, WINDOW_INCREMENT)
+        self.labels = train_metadata['classes']
 
         # Step 2: Extract features from offline data
         fe = libemg.feature_extractor.FeatureExtractor()
         feature_list = fe.get_feature_groups()['HTD']
-        training_features = fe.extract_features(feature_list, train_windows)
+        self.training_features = fe.extract_features(feature_list, train_windows)
 
         # Step 3: Dataset creation
         data_set = {}
-        data_set['training_features'] = training_features
+        data_set['training_features'] = self.training_features
         data_set['training_labels'] = train_metadata['classes']
 
         # Step 4: Create the EMG Classifier
@@ -107,7 +121,7 @@ class GameViewer:
 
         # Step 5: Create online EMG classifier and start classifying.
         self.classifier = libemg.emg_predictor.OnlineEMGClassifier(o_classifier, WINDOW_SIZE, WINDOW_INCREMENT, self.odh, feature_list, std_out=False)
-        self.classifier.run(block=False) # block set to false so it will run in a seperate process.
+        self.classifier.run(block=False) 
 
     def setup_ui_framework(self):
         """Creates a scrollable frame for holding game cards."""
@@ -224,7 +238,11 @@ class GameViewer:
         try:
             self.root.destroy()
             self.root.quit()
-            self.games[game_id]['module']()
+            if game_id == 'pca':
+                self.classifier.stop_running()
+                self.odh.visualize_feature_space(self.training_features, 30, 20, 200, classes = self.labels, class_labels=self.names)
+            else:
+                self.games[game_id]['module']()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to launch {self.games[game_id]['title']}: {str(e)}")
 

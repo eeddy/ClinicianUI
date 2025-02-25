@@ -4,6 +4,19 @@ import numpy as np
 import socket
 import os 
 
+def handle_emg(sock):
+    try:
+        data, _ = sock.recvfrom(1024)
+    except:
+        return None 
+    
+    data = str(data.decode("utf-8"))
+    if data:
+        input_class = float(data.split(' ')[0])
+        if input_class != 0:
+            return input_class - 1
+    return -1
+
 TEST_TIME = 120
 MAX_SPEED = 7.5
 MIN_SPEED = 2.5
@@ -64,46 +77,20 @@ class Note:
 
         return points
 
-def handle_emg(sock):
-    try:
-        data, _ = sock.recvfrom(1024)
-    except:
-        return None
-    
-    data = str(data.decode("utf-8"))
-    if data:
-        input_class = float(data.split(' ')[0])
-        # 0 = Hand Closed or Index Pinch 
-        if input_class == 0:
-            return 1
-        # 1 = Hand Open or Middle Pinch
-        elif input_class == 1:
-            return 2
-        # 3 = Extension or Pinky Pinch
-        elif input_class == 3:
-            return 3
-        # 4 = Flexion or Ring Pinch
-        elif input_class == 4:
-            return 0
-        else:
-            return -1 
 
-def start_game(keyboard=True):
+def start_game():
     pygame.init()
     pygame.font.init()
     pygame.mixer.init() 
     pygame.display.set_caption('Testing Environment')
-    pygame.mixer.music.load('Games/songs/electric-guitar-104-262251.mp3')
-    pygame.mixer.music.play() 
     font = pygame.font.SysFont('Comic Sans MS', 30)
     score_font = pygame.font.SysFont('Comic Sans MS', 40)
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode([525, 700])
 
-    if not keyboard:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-        sock.bind(('127.0.0.1', 12346))
-        sock.setblocking(0)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
+    sock.bind(('127.0.0.1', 12346))
+    sock.setblocking(0)
 
     last_note = time.time()
     start_time = time.time() + TEST_TIME
@@ -112,7 +99,6 @@ def start_game(keyboard=True):
     key_pressed = -1
     score = 0
     combo = 0
-    last_frame_keys = set()  # Track which keys were pressed last frame
 
     # Run until the user asks to quit
     running = True
@@ -157,27 +143,11 @@ def start_game(keyboard=True):
         
         # Deal with key presses 
         current_frame_keys = set()
-        if keyboard:
-            keys = pygame.key.get_pressed()
-            key_pressed = -1 
-            if keys[pygame.K_1]:
-                key_pressed = 0
-                current_frame_keys.add(0)
-            elif keys[pygame.K_2]:
-                key_pressed = 1
-                current_frame_keys.add(1)
-            elif keys[pygame.K_3]:
-                key_pressed = 2
-                current_frame_keys.add(2)
-            elif keys[pygame.K_4]:
-                key_pressed = 3
-                current_frame_keys.add(3)
         
-        if not keyboard:
-            val = handle_emg(sock)
-            if val is not None:
-                key_pressed = val
-                current_frame_keys.add(val)
+        val = handle_emg(sock)
+        if val != None and val != key_pressed:
+            key_pressed = val
+            current_frame_keys.add(val)
 
         # Draw notes on bottom of screen 
         pygame.draw.circle(screen, (255, 0, 0), (75, 500), 35, width=8 - (key_pressed==0) * 8)
@@ -215,8 +185,6 @@ def start_game(keyboard=True):
         if not hit_this_frame and key_pressed != -1:
             combo = 0
 
-        last_frame_keys = current_frame_keys
-
         pygame.draw.rect(screen, (255,255,255), (0, 550, 1000, 300))
 
         # Log everything 
@@ -227,15 +195,6 @@ def start_game(keyboard=True):
         
         # Flip the display
         pygame.display.flip()
-
-    # Display final score
-    screen.fill((255, 255, 255))
-    final_score_text = score_font.render(f'Final Score: {score}', True, (0,0,0))
-    final_score_rect = final_score_text.get_rect()
-    final_score_rect.center = (525//2, 700//2)
-    screen.blit(final_score_text, final_score_rect)
-    pygame.display.flip()
-    time.sleep(3)  # Show final score for 3 seconds
 
     # Done! Time to quit.
     pygame.quit()
