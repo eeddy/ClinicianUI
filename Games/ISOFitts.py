@@ -19,7 +19,7 @@ class FittsLawTest:
         self.pos_factor2 = (self.big_rad * math.sqrt(3))//2
 
         self.done = False
-        self.VEL = 10
+        self.VEL = 20
         self.dwell_time = 3
         self.num_of_circles = num_circles 
         self.max_trial = num_trials
@@ -109,18 +109,19 @@ class FittsLawTest:
         data = str(data.decode("utf-8"))
         if data:
             input_class = float(data.split(' ')[0])
-            # 0 = Hand Closed = down
-            if input_class == 0:
-                self.current_direction[1] += self.VEL
+            velocity = float(data.split(' ')[1])
+            # 0 = Hand Closed
+            if input_class == 1:
+                self.current_direction[0] -= self.VEL * velocity
             # 1 = Hand Open
-            elif input_class == 1:
-                self.current_direction[1] -= self.VEL
-            # 3 = Extension 
-            elif input_class == 3:
-                self.current_direction[0] += self.VEL
-            # 4 = Flexion
+            elif input_class == 2:
+                self.current_direction[0] += self.VEL * velocity
+            # 3 = Pronation 
             elif input_class == 4:
-                self.current_direction[0] -= self.VEL
+                self.current_direction[1] -= self.VEL * velocity
+            # 4 = Supination
+            elif input_class == 3:
+                self.current_direction[1] += self.VEL * velocity
             
 
             ## CHECKING FOR COLLISION BETWEEN CURSOR AND RECTANGLES

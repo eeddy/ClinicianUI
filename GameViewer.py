@@ -4,7 +4,7 @@ from PIL import Image, ImageTk
 from tkinter import Tk, Toplevel, Frame, Label, messagebox, PhotoImage, Canvas, Scrollbar
 
 from Games.emg_hero import start_game as start_emg_hero
-from Games.snake import start_game as start_snake
+from Games.snake import SnakeGame
 from Games.penguin.main import start_game as start_penguins
 from Games.OneDFitts import OneDFitts
 from Games.ISOFitts import FittsLawTest
@@ -47,17 +47,12 @@ class GameViewer:
             'snake': {
                 'title': 'Snake',
                 'thumbnail': 'Icons/Snake.png',
-                'module': start_snake
+                'module': SnakeGame().run_game
             },
             'guitar_hero': {
                 'title': 'Guitar Hero',
                 'thumbnail': 'Icons/GuitarHero.png',
                 'module': start_emg_hero
-            },
-            'raw_data': {
-                'title': 'Raw Data',
-                'thumbnail': 'Icons/RawData.png',
-                'module': self.odh.visualize
             },
             'one_d_fitts': {
                 'title': '1D Fitts',
@@ -73,6 +68,10 @@ class GameViewer:
                 'title': 'PCA',
                 'thumbnail': 'Icons/pca.png',
                 'module': None
+            },'raw_data': {
+                'title': 'Raw Data',
+                'thumbnail': 'Icons/RawData.png',
+                'module': self.odh.visualize
             }
         }
         
@@ -97,7 +96,7 @@ class GameViewer:
         dataset_folder = 'Data/'
         regex_filters = [
             libemg.data_handler.RegexFilter(left_bound = "C_", right_bound="_R", values = self.names, description='classes'),
-            libemg.data_handler.RegexFilter(left_bound = "R_", right_bound="_T_", values = ["0", "1"], description='reps'),
+            libemg.data_handler.RegexFilter(left_bound = "R_", right_bound="_T_", values = [str(i) for i in range(0,20)], description='reps'),
         ]
 
         offline_dh = libemg.data_handler.OfflineDataHandler()
@@ -107,7 +106,7 @@ class GameViewer:
 
         # Step 2: Extract features from offline data
         fe = libemg.feature_extractor.FeatureExtractor()
-        feature_list = fe.get_feature_groups()['HTD']
+        feature_list = ['WENG']
         self.training_features = fe.extract_features(feature_list, train_windows)
 
         # Step 3: Dataset creation
@@ -118,6 +117,8 @@ class GameViewer:
         # Step 4: Create the EMG Classifier
         o_classifier = libemg.emg_predictor.EMGClassifier(model="LDA")
         o_classifier.fit(feature_dictionary=data_set)
+        o_classifier.add_majority_vote(11)
+        o_classifier.add_velocity(train_windows, self.labels)
 
         # Step 5: Create online EMG classifier and start classifying.
         self.classifier = libemg.emg_predictor.OnlineEMGClassifier(o_classifier, WINDOW_SIZE, WINDOW_INCREMENT, self.odh, feature_list, std_out=False)

@@ -4,7 +4,7 @@ import time
 import socket
 
 class OneDFitts:
-    def __init__(self, width=1000, height=400, min_width=30, max_width=30, dwell_time=0.5, num_targets=50, random_seed=0):
+    def __init__(self, width=1000, height=400, min_width=50, max_width=100, dwell_time=0.5, num_targets=50, random_seed=0):
         self.width = width
         self.height = height
         self.min_width = min_width
@@ -15,7 +15,7 @@ class OneDFitts:
         self.dwell_time = dwell_time
         self.enter_time = None
         self.num_targets = num_targets
-        self.VEL = 4
+        self.VEL = 20
 
     def generate_target(self):
         new_target = Target()
@@ -29,7 +29,7 @@ class OneDFitts:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(('127.0.0.1', 12346))
         self.sock.setblocking(0)
-        
+
         pygame.init()
 
         screen = pygame.display.set_mode([self.width, self.height])
@@ -47,10 +47,11 @@ class OneDFitts:
                 data = str(data.decode("utf-8"))
                 if data:
                     input_class = float(data.split(' ')[0])
+                    velocity = float(data.split(' ')[1])
                     if input_class == 1:
-                        self.cursor['x'] += self.VEL
+                        self.cursor['x'] -= self.VEL * velocity
                     elif input_class == 2:
-                        self.cursor['x'] -= self.VEL
+                        self.cursor['x'] += self.VEL * velocity
             except:
                 pass
 

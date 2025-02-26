@@ -23,12 +23,6 @@ MIN_SPEED = 2.5
 MIN_TIME = 0.6
 MAX_TIME = 2.2
 
-log = {
-    "times": [],
-    "notes": [],
-    "button_pressed": [],
-    "score": []
-}
 
 class Note:
     def __init__(self, type):
@@ -87,6 +81,13 @@ def start_game():
     score_font = pygame.font.SysFont('Comic Sans MS', 40)
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode([525, 700])
+
+    img_files = ['Gestures/Close.png', 'Gestures/Open.png', 'Gestures/Pronation.png', 'Gestures/Supination.png']
+    imgs = []
+    if len(img_files) > 0:
+        assert len(img_files) == 4
+        for i in img_files:
+            imgs.append(pygame.transform.smoothscale(pygame.image.load(i), (100,100)))
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
     sock.bind(('127.0.0.1', 12346))
@@ -187,11 +188,12 @@ def start_game():
 
         pygame.draw.rect(screen, (255,255,255), (0, 550, 1000, 300))
 
-        # Log everything 
-        log['times'].append(time.time())
-        log['notes'].append([[n.type, n.y_pos, n.length] for n in notes])
-        log['button_pressed'].append(key_pressed)
-        log['score'].append(score)
+        # Draw images on screen 
+        if len(imgs) > 0:
+            screen.blit(imgs[0], (25,550))
+            screen.blit(imgs[1], (150,550))
+            screen.blit(imgs[2], (275,550))
+            screen.blit(imgs[3], (400,550))
         
         # Flip the display
         pygame.display.flip()

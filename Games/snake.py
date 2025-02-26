@@ -1,191 +1,199 @@
-"""
-Snake Eater
-Made with PyGame
-"""
+import pygame
+import random
+import socket
+from pygame.locals import *
+from collections import deque
 
-import pygame, sys, time, random, socket
+class SnakeGame:
+    def __init__(self):
+        random.seed(0)
+        self.width = 500
+        self.height = 500
+        
+        # Game Variables:
+        self.running = True 
+        self.score = 0
+        self.movement = 1
+        self.snake_head = [40, 40]
+        self.snake_body = []
+        self.target = [None, None]
+        self.generate_target()
+        
+        # Replace unlimited list with a fixed-size deque
+        self.max_history = 1000  # More than enough for any reasonable snake length
+        self.previous_key_presses = deque(maxlen=self.max_history)
+        self.current_direction = "right"  # Default direction
+        
+        # Add keyboard controls
+        self.key_mapping = {
+            K_LEFT: "left",
+            K_RIGHT: "right",
+            K_UP: "up",
+            K_DOWN: "down"
+        }
 
-def handle_emg(sock):
-    try:
-        data, _ = sock.recvfrom(1024)
-    except:
-        return 0
+        # Colors
+        self.snake_green = (5, 255, 0)
+        self.head_blue = (0, 133, 255)
+        self.red = (255, 0, 0)
+
+    def generate_target(self):
+        x = random.randrange(20, self.width-20) 
+        y = random.randrange(20, self.height-20) 
+        self.target[0] = x - x % self.movement
+        self.target[1] = y - y % self.movement
     
-    data = str(data.decode("utf-8"))
-    if data:
-        input_class = float(data.split(' ')[0])
-        if input_class == 1:
-            return 'DOWN'
-        elif input_class == 2:
-            return 'RIGHT'
-
-def start_game():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-    sock.bind(('127.0.0.1', 12346))
-    sock.setblocking(0)
-
-    # Difficulty settings
-    # Easy      ->  10
-    # Medium    ->  25
-    # Hard      ->  40
-    # Harder    ->  60
-    # Impossible->  120
-    difficulty = 10
-
-    # Window size
-    frame_size_x = 720
-    frame_size_y = 480
-
-    # Checks for errors encountered
-    check_errors = pygame.init()
-    # pygame.init() example output -> (6, 0)
-    # second number in tuple gives number of errors
-    if check_errors[1] > 0:
-        print(f'[!] Had {check_errors[1]} errors when initialising game, exiting...')
-        sys.exit(-1)
-    else:
-        print('[+] Game successfully initialised')
-
-
-    # Initialise game window
-    pygame.display.set_caption('Snake Eater')
-    game_window = pygame.display.set_mode((frame_size_x, frame_size_y))
-
-
-    # Colors (R, G, B)
-    black = pygame.Color(0, 0, 0)
-    white = pygame.Color(255, 255, 255)
-    red = pygame.Color(255, 0, 0)
-    green = pygame.Color(0, 255, 0)
-    blue = pygame.Color(0, 0, 255)
-
-
-    # FPS (frames per second) controller
-    fps_controller = pygame.time.Clock()
-
-
-    # Game variables
-    snake_pos = [100, 50]
-    snake_body = [[100, 50], [100-10, 50], [100-(2*10), 50]]
-
-    food_pos = [random.randrange(1, (frame_size_x//10)) * 10, random.randrange(1, (frame_size_y//10)) * 10]
-    food_spawn = True
-
-    direction = 'RIGHT'
-    change_to = direction
-
-    score = 0
-
-
-    # Game Over
-    def game_over():
-        my_font = pygame.font.SysFont('times new roman', 90)
-        game_over_surface = my_font.render('Game Over', True, red)
-        game_over_rect = game_over_surface.get_rect()
-        game_over_rect.midtop = (frame_size_x/2, frame_size_y/4)
-        game_window.fill(black)
-        game_window.blit(game_over_surface, game_over_rect)
-        show_score(0, red, 'times', 20)
-        pygame.display.flip()
-        time.sleep(3)
-        pygame.quit()
-        sys.exit()
-
-
-    # Score
-    def show_score(choice, color, font, size):
-        score_font = pygame.font.SysFont(font, size)
-        score_surface = score_font.render('Score : ' + str(score), True, color)
-        score_rect = score_surface.get_rect()
-        if choice == 1:
-            score_rect.midtop = (frame_size_x/10, 15)
-        else:
-            score_rect.midtop = (frame_size_x/2, frame_size_y/1.25)
-        game_window.blit(score_surface, score_rect)
-        # pygame.display.flip()
-
-
-    # Main logic
-    while True:
-        # Handle EMG 
-        change_to = handle_emg(sock)
-
+    def handle_events(self):
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            # Whenever a key is pressed down
-            elif event.type == pygame.KEYDOWN:
-                # W -> Up; S -> Down; A -> Left; D -> Right
-                if event.key == pygame.K_UP or event.key == ord('w'):
-                    change_to = 'UP'
-                if event.key == pygame.K_DOWN or event.key == ord('s'):
-                    change_to = 'DOWN'
-                if event.key == pygame.K_LEFT or event.key == ord('a'):
-                    change_to = 'LEFT'
-                if event.key == pygame.K_RIGHT or event.key == ord('d'):
-                    change_to = 'RIGHT'
-                # Esc -> Create event to quit the game
-                if event.key == pygame.K_ESCAPE:
-                    pygame.event.post(pygame.event.Event(pygame.QUIT))
+            if event.type == QUIT:
+                self.running = False
+            elif event.type == KEYDOWN:
+                if event.key in self.key_mapping:
+                    self.current_direction = self.key_mapping[event.key]
+                    self.previous_key_presses.append(self.current_direction)
+                    self.move_snake()
+    
+    def handle_emg(self):
+        try:
+            data, _ = self.sock.recvfrom(1024)
+            data_str = data.decode("utf-8")
+            
+            try:
+                input_class = float(data_str.split(' ')[0])
+                
+                new_direction = None
+                # Map EMG signals to directions
+                if input_class == 1:
+                    new_direction = "left"
+                elif input_class == 2:
+                    new_direction = "right"
+                elif input_class == 3:
+                    new_direction = "down"
+                elif input_class == 4:
+                    new_direction = "up"
+                
+                if new_direction:
+                    self.current_direction = new_direction
+                    self.previous_key_presses.append(new_direction)
+                    self.move_snake()
+            except (ValueError, IndexError):
+                # Handle invalid data format
+                pass
+                
+        except BlockingIOError:
+            # No data available, not an error
+            pass
+        except Exception as e:
+            # Log other exceptions
+            print(f"EMG error: {e}")
+    
+    def move_snake(self):
+        # Always store the current position before moving
+        old_positions = [self.snake_head.copy()]
+        for segment in self.snake_body:
+            old_positions.append(segment.copy())
+        
+        # Move head using current direction
+        self.move(self.current_direction, self.snake_head)
+        
+        # Move body segments to previous positions of segments ahead of them
+        for i in range(len(self.snake_body)):
+            self.snake_body[i][0] = old_positions[i][0]
+            self.snake_body[i][1] = old_positions[i][1]
 
-        # Making sure the snake cannot move in the opposite direction instantaneously
-        if change_to == 'UP' and direction != 'DOWN':
-            direction = 'UP'
-        if change_to == 'DOWN' and direction != 'UP':
-            direction = 'DOWN'
-        if change_to == 'LEFT' and direction != 'RIGHT':
-            direction = 'LEFT'
-        if change_to == 'RIGHT' and direction != 'LEFT':
-            direction = 'RIGHT'
+    def move(self, direction, block):
+        block_temp = block.copy()
+        if direction == "left":
+            block_temp[0] -= self.movement
+        elif direction == "right":
+            block_temp[0] += self.movement
+        elif direction == "up":
+            block_temp[1] -= self.movement
+        elif direction == "down":
+            block_temp[1] += self.movement
+        
+        # Check boundaries
+        if (block_temp[0] > 0 and block_temp[0] < self.width and 
+            block_temp[1] > 0 and block_temp[1] < self.height):
+            block[0] = block_temp[0]
+            block[1] = block_temp[1]
 
-        # Moving the snake
-        if direction == 'UP':
-            snake_pos[1] -= 10
-        if direction == 'DOWN':
-            snake_pos[1] += 10
-        if direction == 'LEFT':
-            snake_pos[0] -= 10
-        if direction == 'RIGHT':
-            snake_pos[0] += 10
+    def grow_snake(self):
+        # Grow the snake by multiple segments at once
+        for _ in range(3):
+            # Get the position of the last segment (or head if no segments)
+            if len(self.snake_body) > 0:
+                new_segment = self.snake_body[-1].copy()
+            else:
+                new_segment = self.snake_head.copy()
+                
+            # Add the direction to the history for future reference
+            self.previous_key_presses.append(self.current_direction)
+            
+            # Place the new segment opposite to the current direction
+            if self.current_direction == "left":
+                new_segment[0] += self.movement
+            elif self.current_direction == "right":
+                new_segment[0] -= self.movement
+            elif self.current_direction == "up":
+                new_segment[1] += self.movement
+            elif self.current_direction == "down":
+                new_segment[1] -= self.movement
+                
+            self.snake_body.append(new_segment)
 
-        # Snake body growing mechanism
-        snake_body.insert(0, list(snake_pos))
-        if snake_pos[0] == food_pos[0] and snake_pos[1] == food_pos[1]:
-            score += 1
-            food_spawn = False
-        else:
-            snake_body.pop()
+    def run_game(self):
+        # Pygame Setup:
+        pygame.init()
+        self.window = pygame.display.set_mode([self.width, self.height])
+        pygame.display.set_caption('Pygame (Snake) EMG Demo')
+        self.clock = pygame.time.Clock()
 
-        # Spawning food on the screen
-        if not food_spawn:
-            food_pos = [random.randrange(1, (frame_size_x//10)) * 10, random.randrange(1, (frame_size_y//10)) * 10]
-        food_spawn = True
+        # Socket for reading EMG
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
+        self.sock.bind(('127.0.0.1', 12346))
+        self.sock.setblocking(0)
+        
+        # Initialize with a default direction
+        self.previous_key_presses.append(self.current_direction)
 
-        # GFX
-        game_window.fill(black)
-        for pos in snake_body:
-            # Snake body
-            # .draw.rect(play_surface, color, xy-coordinate)
-            # xy-coordinate -> .Rect(x, y, size_x, size_y)
-            pygame.draw.rect(game_window, green, pygame.Rect(pos[0], pos[1], 10, 10))
+        while self.running: 
+            # Fill the background
+            self.window.fill((233, 233, 233))
 
-        # Snake food
-        pygame.draw.rect(game_window, white, pygame.Rect(food_pos[0], food_pos[1], 10, 10))
+            # Handle keyboard events
+            self.handle_events()
+            
+            # Handle EMG input
+            self.handle_emg()
+            
+            # Auto-movement: move snake in current direction each frame
+            # This makes the game playable even with input lag
+            if len(self.previous_key_presses) > 0:
+                self.move_snake()
 
-        # Game Over conditions
-        # Getting out of bounds
-        if snake_pos[0] < 0 or snake_pos[0] > frame_size_x-10:
-            game_over()
-        if snake_pos[1] < 0 or snake_pos[1] > frame_size_y-10:
-            game_over()
-        # Touching the snake body
-        for block in snake_body[1:]:
-            if snake_pos[0] == block[0] and snake_pos[1] == block[1]:
-                game_over()
+            # Check for collision between snake and target
+            snake = Rect(self.snake_head[0], self.snake_head[1], 20, 20)
+            target = Rect(self.target[0], self.target[1], 20, 20)
+            if pygame.Rect.colliderect(snake, target):
+                self.generate_target()
+                self.grow_snake()
+                self.score += 1
 
-        show_score(1, white, 'consolas', 20)
-        # Refresh game screen
-        pygame.display.update()
-        # Refresh rate
-        fps_controller.tick(difficulty)
+            # Draw Snake
+            pygame.draw.rect(self.window, self.head_blue, snake, border_radius=2)
+            for b in self.snake_body:
+                pygame.draw.rect(self.window, self.snake_green, [b[0], b[1], 20, 20], border_radius=2)
+
+            # Draw Target 
+            pygame.draw.rect(self.window, self.red, target)
+
+            # Score label
+            myfont = pygame.font.SysFont("arial bold", 30)
+            label = myfont.render("Score: " + str(self.score), 1, (0, 0, 0))
+            self.window.blit(label, (self.width - 100, 10))
+
+            pygame.display.update()
+            self.clock.tick(120)
+
+        pygame.quit()
