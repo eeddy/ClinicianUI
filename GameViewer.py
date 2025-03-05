@@ -5,7 +5,7 @@ from tkinter import Tk, Toplevel, Frame, Label, messagebox, PhotoImage, Canvas, 
 
 from Games.emg_hero import start_game as start_emg_hero
 from Games.snake import SnakeGame
-from Games.penguin.main import start_game as start_penguins
+from Games.penguins.main import start_game as start_penguins
 from Games.OneDFitts import OneDFitts
 from Games.ISOFitts import FittsLawTest
 

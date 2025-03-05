@@ -1,7 +1,7 @@
 # Penguins Can't Fly!
 import sys
 import socket 
-sys.path.insert(0, 'Games/penguin')
+sys.path.insert(0, 'Games/penguins')
 
 import pygame
 import random
@@ -33,8 +33,8 @@ def start_game():
     HEIGHT = 800
     fps = 60
     timer = pygame.time.Clock()
-    huge_font = pygame.font.Font('Games/penguin/assets/Terserah.ttf', 42)
-    font = pygame.font.Font('Games/penguin/assets/Terserah.ttf', 24)
+    huge_font = pygame.font.Font('Games/penguins/assets/Terserah.ttf', 42)
+    font = pygame.font.Font('Games/penguins/assets/Terserah.ttf', 24)
     pygame.display.set_caption('Penguins Can\'t Fly!')
     screen = pygame.display.set_mode([WIDTH, HEIGHT])
     bg = (135, 206, 235)
@@ -42,12 +42,12 @@ def start_game():
     clouds = [[200, 100, 1], [50, 330, 2], [350, 330, 3], [200, 670, 1]]
     cloud_images = []
     for i in range(1, 4):
-        img = pygame.image.load(f'Games/penguin/assets/clouds/cloud{i}.png')
+        img = pygame.image.load(f'Games/penguins/assets/clouds/cloud{i}.png')
         cloud_images.append(img)
     # player variables
     player_x = 240
     player_y = 40
-    penguin = pygame.transform.scale(pygame.image.load('Games/penguin/assets/penguin.png'), (50, 50))
+    penguin = pygame.transform.scale(pygame.image.load('Games/penguins/assets/penguin.png'), (50, 50))
     direction = -1
     y_speed = 0
     gravity = 0.2
@@ -56,17 +56,17 @@ def start_game():
     # score variables
     score = 0
     total_distance = 0
-    file = open('Games/penguin/high_scores.txt', 'r')
+    file = open('Games/penguins/high_scores.txt', 'r')
     read = file.readlines()
     first_high = int(read[0])
     high_score = first_high
     # enemies
-    shark = pygame.transform.scale(pygame.image.load('Games/penguin/assets/jetpack_shark.png'), (300, 200))
+    shark = pygame.transform.scale(pygame.image.load('Games/penguins/assets/jetpack_shark.png'), (300, 200))
     enemies = [[-234, random.randint(400, HEIGHT - 100), 1]]
     # sounds and music
-    pygame.mixer.music.load('Games/penguin/assets/theme.mp3')
-    bounce = pygame.mixer.Sound('Games/penguin/assets/bounce.mp3')
-    end_sound = pygame.mixer.Sound('Games/penguin/assets/game_over.mp3')
+    pygame.mixer.music.load('Games/penguins/assets/theme.mp3')
+    bounce = pygame.mixer.Sound('Games/penguins/assets/bounce.mp3')
+    end_sound = pygame.mixer.Sound('Games/penguins/assets/game_over.mp3')
     pygame.mixer.music.play()
     pygame.mixer.music.set_volume(0.2)
 
