@@ -195,5 +195,6 @@ class SnakeGame:
 
             pygame.display.update()
             self.clock.tick(120)
-
+        
+        self.sock.close()
         pygame.quit()

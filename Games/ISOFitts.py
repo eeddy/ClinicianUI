@@ -179,4 +179,5 @@ class FittsLawTest:
             self.update_game()
             pygame.display.update()
             self.clock.tick(self.fps)
+        self.sock.close()
         pygame.quit()

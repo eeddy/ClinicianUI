@@ -21,9 +21,6 @@ class GameViewer:
         self.root.focus_force()
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing) 
 
-        # Setup classifier 
-        self.set_up_classifier()
-
         # Add title
         self.title_label = tk.Label(
             self.root,
@@ -86,6 +83,7 @@ class GameViewer:
         main(self.odh)
 
     def set_up_classifier(self):
+        print("Training Model!")
         WINDOW_SIZE = 30 
         WINDOW_INCREMENT = 5
 
@@ -121,8 +119,9 @@ class GameViewer:
         o_classifier.add_velocity(train_windows, self.labels)
 
         # Step 5: Create online EMG classifier and start classifying.
-        self.classifier = libemg.emg_predictor.OnlineEMGClassifier(o_classifier, WINDOW_SIZE, WINDOW_INCREMENT, self.odh, feature_list, std_out=False)
+        self.classifier = libemg.emg_predictor.OnlineEMGClassifier(o_classifier, WINDOW_SIZE, WINDOW_INCREMENT, self.odh, feature_list, std_out=True)
         self.classifier.run(block=False) 
+        print("Model Trained!")
 
     def setup_ui_framework(self):
         """Creates a scrollable frame for holding game cards."""
@@ -237,13 +236,14 @@ class GameViewer:
     def launch_game(self, game_id):
         """Launch the selected game in a new window."""
         try:
-            self.root.destroy()
-            self.root.quit()
+            self.root.attributes('-topmost', False)
             if game_id == 'pca':
                 self.classifier.stop_running()
                 self.odh.visualize_feature_space(self.training_features, 30, 20, 200, classes = self.labels, class_labels=self.names)
             else:
+                self.set_up_classifier()
                 self.games[game_id]['module']()
+                self.classifier.stop_running()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to launch {self.games[game_id]['title']}: {str(e)}")
 
