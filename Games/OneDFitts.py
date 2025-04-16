@@ -95,6 +95,7 @@ class OneDFitts:
 
             clock.tick(240)
 
+        self.sock.close()
         pygame.quit()
 
 class Target:
